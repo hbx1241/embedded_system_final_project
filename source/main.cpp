@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+#include <algorithm>
 #include <cstdio>
 #include <stdlib.h>
 #include <string.h>
 #include "mbed.h"
+#include "stm32l475e_iot01.h"
 #include "wifi_helper.h"
 #include "mbed-trace/mbed_trace.h"
 
@@ -30,28 +32,27 @@
 #include "stm32l475e_iot01_accelero.h"
 
 // TODO change your server ip and port
-<<<<<<< HEAD
-#define SERVER_IP "192.168.176.192"
+#define SERVER_IP "192.168.176.193"
 #define SERVER_PORT 8787
 // TODO time interval between each sending message
-#define TIME_INTERVAL 50ms
-=======
-#define SERVER_IP "192.168.50.51"
-#define SERVER_PORT 8753
-// TODO time interval between each sending message
 #define TIME_INTERVAL 1s
->>>>>>> 24e7e6daa4e6160d486937f3ff9c108ad3e19701
-
+#define FLAG1 (1UL << 0)
+#define FLAG2 (1UL << 2)
 #if MBED_CONF_APP_USE_TLS_SOCKET
 #include "root_ca_cert.h"
+
+
 
 #ifndef DEVICE_TRNG
 #error "mbed-os-example-tls-socket requires a device which supports TRNG"
 #endif
 #endif // MBED_CONF_APP_USE_TLS_SOCKET
 
+
 class SocketDemo;
 DigitalOut led(LED1);
+EventFlags event_flags;
+EventQueue eq;
 void read_sensor(char *buffer, int sample_num);
 
 class SocketDemo {
@@ -65,7 +66,9 @@ class SocketDemo {
 #endif // MBED_CONF_APP_USE_TLS_SOCKET
 
 public:
-    SocketDemo() : _net(NetworkInterface::get_default_instance())
+    SocketDemo(events::EventQueue &event_queue) : 
+        _net(NetworkInterface::get_default_instance()),
+        _event_queue(event_queue)
     {
     }
 
@@ -144,7 +147,15 @@ public:
 
         /* exchange an HTTP request */
         int sample_num = 0;
-        while (1) {
+        printf("waiting to start\n");
+        
+        _event_queue.call_every(
+            80ms,
+            [this] {
+                send_http_request();
+            }
+        );
+        /*while (1) {
             if (!send_http_request(sample_num)) {
                 break;
                 //ThisThread::sleep_for(10s);
@@ -153,13 +164,13 @@ public:
             
             printf("--- Sending of message No.%d is successful ---\r\n", sample_num);
             sample_num++;
-<<<<<<< HEAD
-            ThisThread::sleep_for(TIME_INTERVAL);
-=======
             ThisThread::sleep_for(80ms);
->>>>>>> 24e7e6daa4e6160d486937f3ff9c108ad3e19701
-        }
-
+        }*/
+        Timer t;
+        t.start();
+        _event_queue.dispatch_for(11000ms);
+        auto us = t.elapsed_time().count();
+        printf("%llu \n", us);
         printf("Socket run has finished\r\n");
     }
 
@@ -181,7 +192,7 @@ private:
         return true;
     }
 
-    bool send_http_request(int sample_num)
+    bool send_http_request()
     {
         /* loop until whole request sent */
         /*const char head[] = "GET / HTTP/1.1\r\n"
@@ -189,7 +200,8 @@ private:
                             "Connection: close\r\n"
                             "\r\n";
         */
-        char *buffer = (char *) malloc(sizeof(char) * 200);
+        static int sample_num = 0;
+        char *buffer = (char *) malloc(sizeof(char) * 100);
         buffer[0] = '\0';
         //strcat(buffer, head);
         read_sensor(buffer, sample_num);
@@ -197,7 +209,7 @@ private:
         nsapi_size_t bytes_to_send = strlen(buffer);
         nsapi_size_or_error_t bytes_sent = 0;
 
-        printf("\r\nSending message: \r\n%s", buffer);
+        //printf("\r\nSending message: \r\n%s", buffer);
 
         while (bytes_to_send) {
             bytes_sent = _socket.send(buffer + bytes_sent, bytes_to_send);
@@ -213,7 +225,7 @@ private:
 
         free(buffer);
         printf("Complete message sent\r\n");
-
+        sample_num++;
         return true;
     }
 
@@ -238,7 +250,7 @@ private:
 
         /* the message is likely larger but we only want the HTTP response code */
 
-        printf("received %d bytes:\r\n%.*s\r\n\r\n", received_bytes, strstr(buffer, "\n") - buffer, buffer);
+        //printf("received %d bytes:\r\n%.*s\r\n\r\n", received_bytes, strstr(buffer, "\n") - buffer, buffer);
 
         return true;
     }
@@ -283,7 +295,7 @@ private:
 
 private:
     NetworkInterface *_net;
-
+    events::EventQueue &_event_queue;
 #if MBED_CONF_APP_USE_TLS_SOCKET
     TLSSocket _socket;
 #else
@@ -305,8 +317,6 @@ void read_sensor(char *buffer, int sample_num)
 
     strcat(buffer, "\n{\n");
 
-<<<<<<< HEAD
-=======
     /*sensor_value = BSP_TSENSOR_ReadTemp();
     snprintf(inner_buf, 50, "\t\"TEMPERATURE\": %.2f, \n", sensor_value);
     strcat(buffer, inner_buf);
@@ -329,40 +339,23 @@ void read_sensor(char *buffer, int sample_num)
     snprintf(inner_buf, 50, "\t\"MAGNETO_XYZ\": [%d, %d, %d], \n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
     strcat(buffer, inner_buf);*/
 
-    BSP_GYRO_GetXYZ(pGyroDataXYZ);
-    snprintf(inner_buf, 50, "\t\"GYRO_XYZ\": [%.2f, %.2f, %.2f], \n", pGyroDataXYZ[0], pGyroDataXYZ[1], pGyroDataXYZ[2]);
-    strcat(buffer, inner_buf);
-
->>>>>>> 24e7e6daa4e6160d486937f3ff9c108ad3e19701
     BSP_ACCELERO_AccGetXYZ(pDataXYZ);
-    snprintf(inner_buf, 50, "\t\"ACCELERO_XYZ\": [%d, %d, %d], \n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
+    snprintf(inner_buf, 50, "\t\"ACCELERO_XYZ\":[%d, %d, %d],\n\t\"SAMPLE_NUM\":%d\n}\n", \
+                pDataXYZ[0], pDataXYZ[1], pDataXYZ[2], sample_num);
     strcat(buffer, inner_buf);
-
-    snprintf(inner_buf, 50, "\t\"SAMPLE_NUM\": %d\n", sample_num);
-    strcat(buffer, inner_buf);
-    strcat(buffer, "}\n");
-
-    led = 0;
 
     return;
 }
 
+
 int main() {
     printf("\nStart sensor init\n");
 
-<<<<<<< HEAD
-    BSP_TSENSOR_Init();
-    BSP_HSENSOR_Init();
-    BSP_PSENSOR_Init();
-
-    BSP_MAGNETO_Init();
-=======
     /*BSP_TSENSOR_Init();
     BSP_HSENSOR_Init();
     BSP_PSENSOR_Init();
 
     BSP_MAGNETO_Init();*/
->>>>>>> 24e7e6daa4e6160d486937f3ff9c108ad3e19701
     BSP_GYRO_Init();
     BSP_ACCELERO_Init();
 
@@ -372,7 +365,7 @@ int main() {
     mbed_trace_init();
 #endif
 
-    SocketDemo *socket = new SocketDemo();
+    SocketDemo *socket = new SocketDemo(eq);
     MBED_ASSERT(socket);
     socket->run();
     return 0;
