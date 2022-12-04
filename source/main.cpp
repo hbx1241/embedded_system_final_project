@@ -30,10 +30,17 @@
 #include "stm32l475e_iot01_accelero.h"
 
 // TODO change your server ip and port
+<<<<<<< HEAD
+#define SERVER_IP "192.168.176.192"
+#define SERVER_PORT 8787
+// TODO time interval between each sending message
+#define TIME_INTERVAL 50ms
+=======
 #define SERVER_IP "192.168.50.51"
 #define SERVER_PORT 8753
 // TODO time interval between each sending message
 #define TIME_INTERVAL 1s
+>>>>>>> 24e7e6daa4e6160d486937f3ff9c108ad3e19701
 
 #if MBED_CONF_APP_USE_TLS_SOCKET
 #include "root_ca_cert.h"
@@ -146,7 +153,11 @@ public:
             
             printf("--- Sending of message No.%d is successful ---\r\n", sample_num);
             sample_num++;
+<<<<<<< HEAD
+            ThisThread::sleep_for(TIME_INTERVAL);
+=======
             ThisThread::sleep_for(80ms);
+>>>>>>> 24e7e6daa4e6160d486937f3ff9c108ad3e19701
         }
 
         printf("Socket run has finished\r\n");
@@ -294,6 +305,8 @@ void read_sensor(char *buffer, int sample_num)
 
     strcat(buffer, "\n{\n");
 
+<<<<<<< HEAD
+=======
     /*sensor_value = BSP_TSENSOR_ReadTemp();
     snprintf(inner_buf, 50, "\t\"TEMPERATURE\": %.2f, \n", sensor_value);
     strcat(buffer, inner_buf);
@@ -320,6 +333,7 @@ void read_sensor(char *buffer, int sample_num)
     snprintf(inner_buf, 50, "\t\"GYRO_XYZ\": [%.2f, %.2f, %.2f], \n", pGyroDataXYZ[0], pGyroDataXYZ[1], pGyroDataXYZ[2]);
     strcat(buffer, inner_buf);
 
+>>>>>>> 24e7e6daa4e6160d486937f3ff9c108ad3e19701
     BSP_ACCELERO_AccGetXYZ(pDataXYZ);
     snprintf(inner_buf, 50, "\t\"ACCELERO_XYZ\": [%d, %d, %d], \n", pDataXYZ[0], pDataXYZ[1], pDataXYZ[2]);
     strcat(buffer, inner_buf);
@@ -336,11 +350,19 @@ void read_sensor(char *buffer, int sample_num)
 int main() {
     printf("\nStart sensor init\n");
 
+<<<<<<< HEAD
+    BSP_TSENSOR_Init();
+    BSP_HSENSOR_Init();
+    BSP_PSENSOR_Init();
+
+    BSP_MAGNETO_Init();
+=======
     /*BSP_TSENSOR_Init();
     BSP_HSENSOR_Init();
     BSP_PSENSOR_Init();
 
     BSP_MAGNETO_Init();*/
+>>>>>>> 24e7e6daa4e6160d486937f3ff9c108ad3e19701
     BSP_GYRO_Init();
     BSP_ACCELERO_Init();
 
