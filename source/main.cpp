@@ -150,7 +150,7 @@ public:
         printf("waiting to start\n");
         
         _event_queue.call_every(
-            80ms,
+            50ms,
             [this] {
                 send_http_request();
             }
@@ -168,7 +168,7 @@ public:
         }*/
         Timer t;
         t.start();
-        _event_queue.dispatch_for(11000ms);
+        _event_queue.dispatch_for(12500ms);
         auto us = t.elapsed_time().count();
         printf("%llu \n", us);
         printf("Socket run has finished\r\n");
@@ -201,7 +201,7 @@ private:
                             "\r\n";
         */
         static int sample_num = 0;
-        char *buffer = (char *) malloc(sizeof(char) * 100);
+        char *buffer = (char *) malloc(sizeof(char) * 80);
         buffer[0] = '\0';
         //strcat(buffer, head);
         read_sensor(buffer, sample_num);
@@ -217,14 +217,14 @@ private:
                 printf("Error! _socket.send() returned: %d\r\n", bytes_sent);
                 return false;
             } else {
-                printf("sent %d bytes\r\n", bytes_sent);
+                //printf("sent %d bytes\r\n", bytes_sent);
             }
 
             bytes_to_send -= bytes_sent;
         }
 
         free(buffer);
-        printf("Complete message sent\r\n");
+        //printf("Complete message sent\r\n");
         sample_num++;
         return true;
     }
@@ -308,14 +308,14 @@ void read_sensor(char *buffer, int sample_num)
     float sensor_value = 0;
     int16_t pDataXYZ[3] = {0};
     float pGyroDataXYZ[3] = {0};
-    char inner_buf[50];
+    //char inner_buf[50];
 
     //printf("buffer: %s\n", buffer);
     //printf("\n\tNew loop, LED1 should blink during sensor read\n");
 
     led = 1;
 
-    strcat(buffer, "\n{\n");
+    //strcat(buffer, "\n{\n");
 
     /*sensor_value = BSP_TSENSOR_ReadTemp();
     snprintf(inner_buf, 50, "\t\"TEMPERATURE\": %.2f, \n", sensor_value);
@@ -340,9 +340,9 @@ void read_sensor(char *buffer, int sample_num)
     strcat(buffer, inner_buf);*/
 
     BSP_ACCELERO_AccGetXYZ(pDataXYZ);
-    snprintf(inner_buf, 50, "\t\"ACCELERO_XYZ\":[%d, %d, %d],\n\t\"SAMPLE_NUM\":%d\n}\n", \
+    snprintf(buffer, 80, "\n{\n\t\"AC\":[%d, %d, %d],\t\"S\":%d\n}\n", \
                 pDataXYZ[0], pDataXYZ[1], pDataXYZ[2], sample_num);
-    strcat(buffer, inner_buf);
+    //strcat(buffer, inner_buf);
 
     return;
 }

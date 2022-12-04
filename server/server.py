@@ -31,7 +31,7 @@ def plotdata():
     list = []
     t = []
     id = 0
-    while id < 124:
+    while id < 240:
         while q.qsize() > 0:
             list.append(q.get())
             t.append(id)
@@ -66,7 +66,7 @@ def getdata():
 
         except:
             print("warning: fail to load json")
-        q.put([float(obj['ACCELERO_XYZ'][0])/1000 * 9.806, float(obj['ACCELERO_XYZ'][1])/1000 * 9.806, float(obj['ACCELERO_XYZ'][2])/1000 * 9.806])
+        q.put([float(obj['AC'][0])/1000 * 9.806, float(obj['AC'][1])/1000 * 9.806, float(obj['AC'][2])/1000 * 9.806])
     event.clear()
 
     
