@@ -9,7 +9,7 @@ import time
 import queue
 import pandas as pd
 
-HOST = '192.168.176.193'# IP address
+HOST = '192.168.0.181'# IP address
 PORT = 8787 # Port to listen on (use ports > 1023)
 
 LAST = 1200 # show last LAST data
@@ -46,7 +46,7 @@ def plotdata():
         out.append(i)
 
     df = pd.DataFrame(out, columns= ["x", "y", "z"])
-    df.to_csv("dataout.txt")
+    df.to_csv("sit_down_2.txt")
     stop.set()
           
 def getdata():
