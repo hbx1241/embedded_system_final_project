@@ -168,7 +168,7 @@ public:
         }*/
         Timer t;
         t.start();
-        _event_queue.dispatch_for(12500ms);
+        _event_queue.dispatch_forever();
         auto us = t.elapsed_time().count();
         printf("%llu \n", us);
         printf("Socket run has finished\r\n");
@@ -340,7 +340,7 @@ void read_sensor(char *buffer, int sample_num)
     strcat(buffer, inner_buf);*/
 
     BSP_ACCELERO_AccGetXYZ(pDataXYZ);
-    snprintf(buffer, 80, "\n{\n\t\"AC\":[%d, %d, %d],\t\"S\":%d\n}\n", \
+    snprintf(buffer, 80, "{\n\t\"AC\": [%d, %d, %d],\t\"S\": %d\n};", \
                 pDataXYZ[0], pDataXYZ[1], pDataXYZ[2], sample_num);
     //strcat(buffer, inner_buf);
 
