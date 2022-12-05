@@ -2,49 +2,50 @@ import pandas as pd
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
 from hmmlearn import hmm
 
 SAMPLE_RATE = 20
-filename = "F_23112025-01-2013-05-21-06-21-54.mat.txt"
-filename2 = "F_04835861-01-2013-10-16-13-19-35.mat.txt"
-col = ["relative_time", "absolute_time", "ax", "ay", "az", "gx", "gy", "gz", "mx", "my", "mz", "fall_indicator"]
+#filename = "F_23112025-01-2013-05-21-06-21-54.mat.txt"
+#filename2 = "F_04835861-01-2013-10-16-13-19-35.mat.txt"
+#col = ["relative_time", "absolute_time", "ax", "ay", "az", "gx", "gy", "gz", "mx", "my", "mz", "fall_indicator"]
+SIZE = 3
+ACT = ["idle", "walk", "stand_up", "sit_down", "fall_forward", "fall_aside"]
+for act in ACT:
+    col = ["x", "y", "z"]
+    df = [[] for i in range(SIZE)]
+    acc_set = [[] for i in range(SIZE)]
+    av = [[] for i in range(SIZE)]
+    vh = [[] for i in range(SIZE)]
 
-df = pd.read_csv("csv/" + filename, header=0, names=col)
-print(df["fall_indicator"])
+    dataslice = np.empty((0, 2))
+    length = []
+    for i in range(SIZE):
+        df[i] = pd.read_csv("./data/" + act + "/" + act + "_" + str(i + 1) + ".txt",\
+        header=0, names=col)
+        acc_set[i] = df[i][col].to_numpy()
+        av[i] = np.average(acc_set[i][0:SAMPLE_RATE-1], axis=0)
+        print(av[i])
 
-l = df.loc[df["fall_indicator"] > 0] 
-tmp = df[12000 - 10 : 12000 + 10]
-
-acc_set = df[["ax", "ay", "az"]][0:SAMPLE_RATE-1].to_numpy()
-print(np.average(acc_set, axis=0))
-av = np.average(acc_set, axis=0)
-acc_set = df[["ax", "ay", "az"]][12000 - 10:12000 + 10].to_numpy()
-vh = []
-for at in acc_set:
-    avt = np.dot(av, at) / np.dot(av, av) * av 
-    aht = at - avt
-    v = np.dot(av, at) / np.sqrt(np.dot(av, av))
-    h = np.sqrt(np.dot(aht, aht))
-    print(v, h)
-    vh.append([v, h])
-#print(vh)
-remodel = hmm.GaussianHMM(n_components=4, covariance_type="diag", n_iter=100)
-remodel.fit(vh)
-vh2 = []
-acc_set = df[["ax", "ay", "az"]][0:SAMPLE_RATE-1].to_numpy()
-for at in acc_set:
-    avt = np.dot(av, at) / np.dot(av, av) * av 
-    aht = at - avt
-    v = np.dot(av, at) / np.sqrt(np.dot(av, av))
-    h = np.sqrt(np.dot(aht, aht))
-    print(v, h)
-    vh2.append([v, h])
-remodel2 = hmm.GaussianHMM(n_components=4, covariance_type="diag", n_iter=100)
-remodel2.fit(vh2)
-Z2 = remodel2.score(vh)
-Z = remodel.score(vh)
-print(Z)
-print(Z2)
-tmp.to_csv("fall_extract_csv.txt")
-print(df.loc[df["fall_indicator"] > 0])
+        for at in acc_set[i]:
+            v = np.dot(av[i], at) / np.dot(av[i], av[i])
+            avt = v * av[i] 
+            aht = at - avt
+            h = np.sqrt(np.dot(aht, aht))
+            print(v, h)
+            vh[i].append([v, h])
+        id = 2 * SAMPLE_RATE
+        while id < len(vh[i]):
+            print(dataslice)
+            print(vh[i][id-SAMPLE_RATE:id])
+            #dataslice.append(vh[i][id-SAMPLE_RATE:id])
+            dataslice = np.concatenate([dataslice, vh[i][id-SAMPLE_RATE:id]])
+            length.append(SAMPLE_RATE)
+            id += 5
+    remodel = hmm.GaussianHMM(n_components=4, covariance_type="diag", n_iter=100)
+    remodel.fit(dataslice, length)
+    with open(act + ".pkl", "wb") as file: pickle.dump(remodel, file)
+    for i in range(len(vh[0]) - SAMPLE_RATE):
+        Z = remodel.score(vh[0][i:i+SAMPLE_RATE])
+        print(Z)
 
