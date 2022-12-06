@@ -9,9 +9,11 @@ import time
 import queue
 import pandas as pd
 import pickle
+import requests
 
-HOST = '192.168.176.193'# IP address
+HOST = '192.168.68.56'# IP address
 PORT = 8787 # Port to listen on (use ports > 1023)
+URL = 'https://maker.ifttt.com/trigger/fall_detected/json/with/key/bZ5RcrGNtpyWza0jDm1KzZ'  # ifttt url
 
 SAMPLE_RATE = 20
 LAST = 500 * SAMPLE_RATE # show last LAST data
@@ -52,7 +54,11 @@ def plotdata():
                 z = []
                 for hmm in model:
                     z.append(hmm.score(vh[-SAMPLE_RATE:]))
-                print(act[z.index(max(z))])
+                prediction = act[z.index(max(z))]
+                print(prediction)
+                if prediction == "fall_forward" or prediction == "fall_aside":
+                    requests.get(url = URL)
+
         if not len(av) and id > SAMPLE_RATE:
             av = np.average(list[0:SAMPLE_RATE-1], axis=0)
     out = []
@@ -97,11 +103,10 @@ def getdata():
     s.close()
     
 
-    
 t1=Thread(target=getdata)
 t2=Thread(target=plotdata)
 for a in act:
-    with open(a + ".pkl", "rb") as file:
+    with open("./model/" + a + ".pkl", "rb") as file:
         q.put(pickle.load(file))
 t1.start()
 t2.start()
