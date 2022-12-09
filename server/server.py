@@ -11,24 +11,21 @@ import pandas as pd
 import pickle
 import requests
 
-HOST = '192.168.68.56'# IP address
+HOST = '192.168.176.193'# IP address
 PORT = 8787 # Port to listen on (use ports > 1023)
 URL = 'https://maker.ifttt.com/trigger/fall_detected/json/with/key/bZ5RcrGNtpyWza0jDm1KzZ'  # ifttt url
 
 SAMPLE_RATE = 20
 LAST = 500 * SAMPLE_RATE # show last LAST data
 t = []
-humi = []
-pres = []
-temp = []
 acc = [[] for i in range(3)]
-act = ["idle", "walk", "stand_up", "sit_down", "fall_forward", "fall_aside"]
+act = ["idle", "walk", "stand_up", "sit_down", "fall_forward", "sit", "lay"]
 
 q = queue.Queue()
 event = threading.Event()
 stop = threading.Event()
+
 def plotdata():
-    color = [['r', 'g', 'b']]
     dimension = ['X', 'Y', 'Z']
     model = []
     while q.qsize() > 0:
@@ -37,6 +34,7 @@ def plotdata():
     t = []
     av = []
     vh = []
+    lav = 0 
     id = 0
     event.wait()
     while stop.is_set() == False:
@@ -45,29 +43,31 @@ def plotdata():
             t.append(id)
             id += 1
             if (id > SAMPLE_RATE + 1):
-               v = float(np.dot(list[-1:], av) / np.dot(av, av))
-               avt = v * av
+               v = float(np.dot(list[-1:], av) / lav) 
+               avt = (v / lav) * av
                aht = list[-1:] - avt
                h = float(np.sqrt(np.dot(aht, aht.T)))
                vh.append([v, h])
-            if (id % 5 == 0 and id > 2 * SAMPLE_RATE):
+            if (id % SAMPLE_RATE == 0 and id > 2 * SAMPLE_RATE):
                 z = []
                 for hmm in model:
-                    z.append(hmm.score(vh[-SAMPLE_RATE:]))
+                    score = hmm.score(vh[-SAMPLE_RATE:])
+                    z.append(score)
+                print(z)
                 prediction = act[z.index(max(z))]
-                print(prediction)
-                if prediction == "fall_forward" or prediction == "fall_aside":
-                    requests.get(url = URL)
+                print(prediction, id)
+                if prediction == "fall_forward":
+                    print("fall fall_detected")
+                    #requests.get(url = URL)
 
         if not len(av) and id > SAMPLE_RATE:
+            print("v set!")
             av = np.average(list[0:SAMPLE_RATE-1], axis=0)
-    out = []
-    id = 0
-    for i in list:
-        out.append(i)
-
-    df = pd.DataFrame(out, columns= ["x", "y", "z"])
+            lav = np.sqrt(np.dot(av, av))
+    df = pd.DataFrame(list, columns= ["x", "y", "z"])
     df.to_csv("recorded_data.txt")
+    df2 = pd.DataFrame(vh, columns= ["v", "h"])
+    df2.to_csv("recorded_data_vh.txt")
     print("data saved!")
           
 def getdata():
