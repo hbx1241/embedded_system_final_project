@@ -11,15 +11,16 @@ import pandas as pd
 import pickle
 import requests
 
-HOST = '192.168.176.193'# IP address
+HOST = '192.168.30.193'# IP address
 PORT = 8787 # Port to listen on (use ports > 1023)
 URL = 'https://maker.ifttt.com/trigger/fall_detected/json/with/key/bZ5RcrGNtpyWza0jDm1KzZ'  # ifttt url
 
 SAMPLE_RATE = 20
 LAST = 500 * SAMPLE_RATE # show last LAST data
+seq_len = 8
 t = []
 acc = [[] for i in range(3)]
-act = ["idle", "walk", "stand_up", "sit_down", "fall_forward", "sit", "lay"]
+act = ["idle", "walk", "stand_up", "sit_down", "fall_forward"]
 
 q = queue.Queue()
 event = threading.Event()
@@ -48,10 +49,10 @@ def plotdata():
                aht = list[-1:] - avt
                h = float(np.sqrt(np.dot(aht, aht.T)))
                vh.append([v, h])
-            if (id % SAMPLE_RATE == 0 and id > 2 * SAMPLE_RATE):
+            if (id % seq_len == 0 and id > 2 * SAMPLE_RATE):
                 z = []
                 for hmm in model:
-                    score = hmm.score(vh[-SAMPLE_RATE:])
+                    score = hmm.score(vh[-seq_len:])
                     z.append(score)
                 print(z)
                 prediction = act[z.index(max(z))]
@@ -66,8 +67,8 @@ def plotdata():
             lav = np.sqrt(np.dot(av, av))
     df = pd.DataFrame(list, columns= ["x", "y", "z"])
     df.to_csv("recorded_data.txt")
-    df2 = pd.DataFrame(vh, columns= ["v", "h"])
-    df2.to_csv("recorded_data_vh.txt")
+#    df2 = pd.DataFrame(vh, columns= ["v", "h"])
+#    df2.to_csv("recorded_data_vh.txt")
     print("data saved!")
           
 def getdata():
