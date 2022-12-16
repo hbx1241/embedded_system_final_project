@@ -32,7 +32,7 @@
 #include "stm32l475e_iot01_accelero.h"
 
 // TODO change your server ip and port
-#define SERVER_IP "192.168.176.193"
+#define SERVER_IP "192.168.30.193"
 #define SERVER_PORT 8787
 // TODO time interval between each sending message
 #define TIME_INTERVAL 1s
@@ -48,6 +48,9 @@
 #endif
 #endif // MBED_CONF_APP_USE_TLS_SOCKET
 
+InterruptIn button(BUTTON1);
+
+volatile int mode = 0;
 
 class SocketDemo;
 DigitalOut led(LED1);
@@ -340,13 +343,17 @@ void read_sensor(char *buffer, int sample_num)
     strcat(buffer, inner_buf);*/
 
     BSP_ACCELERO_AccGetXYZ(pDataXYZ);
-    snprintf(buffer, 80, "{\n\t\"AC\": [%d, %d, %d],\t\"S\": %d\n};", \
-                pDataXYZ[0], pDataXYZ[1], pDataXYZ[2], sample_num);
+    snprintf(buffer, 80, "{\n\t\"AC\": [%d, %d, %d],\t\"S\": %d\n,\t\"M\": %d\n};", \
+                pDataXYZ[0], pDataXYZ[1], pDataXYZ[2], sample_num, mode);
     //strcat(buffer, inner_buf);
 
     return;
 }
 
+void button_pressed()
+{
+    mode = mode ? 0 : 1;
+}
 
 int main() {
     printf("\nStart sensor init\n");
@@ -358,6 +365,7 @@ int main() {
     BSP_MAGNETO_Init();*/
     BSP_GYRO_Init();
     BSP_ACCELERO_Init();
+    button.fall(&button_pressed);
 
     printf("\r\nStarting socket\r\n\r\n");
 

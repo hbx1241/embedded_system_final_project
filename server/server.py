@@ -10,6 +10,8 @@ import queue
 import pandas as pd
 import pickle
 import requests
+import random
+from paho.mqtt import client as mqtt_client
 
 HOST = '192.168.30.193'# IP address
 PORT = 8787 # Port to listen on (use ports > 1023)
@@ -21,6 +23,42 @@ seq_len = 8
 t = []
 acc = [[] for i in range(3)]
 act = ["idle", "walk", "stand_up", "sit_down", "fall_forward"]
+# MQTT
+
+def connect_mqtt():
+    def on_connect(client, userdata, flags, rc):
+        if rc == 0:
+            print("Connected to MQTT Broker!")
+        else:
+            print("Failed to connect, return code %d\n", rc)
+
+    client = mqtt_client.Client(client_id)
+    # client.username_pw_set(username, password)
+    client.on_connect = on_connect
+    client.connect(broker, port)
+    return client
+
+def mqtt_publish(client):
+
+    msg = "gesture detected!"
+    result = client.publish(topic, msg)
+    # result: [0, 1]
+    status = result[0]
+    if status == 0:
+        print(f"Send `{msg}` to topic `{topic}`")
+    else:
+        print(f"Failed to send message to topic {topic}")
+
+broker = 'broker.emqx.io'
+port = 1883
+topic = "light switching"
+# generate client ID with pub prefix randomly
+client_id = f'python-mqtt-{random.randint(0, 1000)}'
+username = 'thomas'
+password = 'aaa'
+
+client = connect_mqtt()
+client.loop_start()
 
 q = queue.Queue()
 event = threading.Event()
@@ -43,7 +81,7 @@ def plotdata():
             list.append(q.get())
             t.append(id)
             id += 1
-            if (id > SAMPLE_RATE + 1):
+            if (id > SAMPLE_RATE + 10):
                v = float(np.dot(list[-1:], av) / lav) 
                avt = (v / lav) * av
                aht = list[-1:] - avt
@@ -70,7 +108,22 @@ def plotdata():
 #    df2 = pd.DataFrame(vh, columns= ["v", "h"])
 #    df2.to_csv("recorded_data_vh.txt")
     print("data saved!")
-          
+
+def gesture_recognition(acc_data, previous_gesturing_status):
+    SVM = np.linalg.norm(np.array(acc_data))
+    if(SVM > 1.8 * 9.8):
+        # gesturing
+        if(not previous_gesturing_status):
+            print("gesture detected")
+            mqtt_publish(client)
+            previous_gesturing_status = True
+    else:
+        # not gesturing
+        if(previous_gesturing_status):
+            previous_gesturing_status = False
+    return previous_gesturing_status
+
+ 
 def getdata():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -83,6 +136,7 @@ def getdata():
     obj = []
     cur = 0
     last = 0
+    gesturing = False
     while True:
         try:
             data = conn.recv(1024).decode('utf-8')
@@ -95,8 +149,12 @@ def getdata():
             for d in str:
                 if len(d) != 0:
                     obj = json.loads(d)
-                    q.put([float(obj['AC'][0])/1000 * 9.806, float(obj['AC'][1])/1000 * 9.806, \
-                    float(obj['AC'][2])/1000 * 9.806])
+                    acc_data = [float(obj['AC'][0])/1000 * 9.806, float(obj['AC'][1])/1000 * 9.806, \
+                    float(obj['AC'][2])/1000 * 9.806]
+                    if (obj['M']):
+                        gesturing = gesture_recognition(acc_data, gesturing)
+                    else: 
+                        q.put(acc_data)
         except Exception as e:
             print("warning: fail to load json ", e, str)
         
