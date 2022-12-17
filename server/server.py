@@ -13,9 +13,14 @@ import requests
 import random
 from paho.mqtt import client as mqtt_client
 
-HOST = '192.168.30.193'# IP address
-PORT = 8787 # Port to listen on (use ports > 1023)
-URL = 'https://maker.ifttt.com/trigger/fall_detected/json/with/key/bZ5RcrGNtpyWza0jDm1KzZ'  # ifttt url
+setting = open("setting.json")
+
+setting = json.load(setting)
+HOST = setting["HOST"]# IP address
+PORT = int(setting["PORT"]) # Port to listen on (use ports > 1023)
+URL = setting["URL"] # ifttt url
+username = setting["username"] # username of public mqtt server
+password = setting["password"] # password
 
 SAMPLE_RATE = 20
 LAST = 500 * SAMPLE_RATE # show last LAST data
@@ -54,8 +59,7 @@ port = 1883
 topic = "light switching"
 # generate client ID with pub prefix randomly
 client_id = f'python-mqtt-{random.randint(0, 1000)}'
-username = 'thomas'
-password = 'aaa'
+
 
 client = connect_mqtt()
 client.loop_start()
