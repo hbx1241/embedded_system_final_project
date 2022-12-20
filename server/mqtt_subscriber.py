@@ -1,5 +1,5 @@
 import random
-
+import RPi.GPIO as GPIO
 from paho.mqtt import client as mqtt_client
 
 
@@ -28,13 +28,21 @@ def connect_mqtt() -> mqtt_client:
 
 def subscribe(client: mqtt_client):
     def on_message(client, userdata, msg):
-        print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
-
+        light_on = msg.payload.decode()
+        print(f"Received `{light_on}` from `{msg.topic}` topic")
+        if light_on == 'True':
+            GPIO.output(11,True)
+        elif light_on == 'False':
+            GPIO.output(11,False)
+        
     client.subscribe(topic)
     client.on_message = on_message
 
 
 def run():
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(11, GPIO.OUT)    # 將P1接頭的11腳位設定為輸出
+    GPIO.output(11, True)    # turn on the light initially
     client = connect_mqtt()
     subscribe(client)
     client.loop_forever()
