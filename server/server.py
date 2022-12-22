@@ -38,7 +38,7 @@ def connect_mqtt():
             print("Failed to connect, return code %d\n", rc)
 
     client = mqtt_client.Client(client_id)
-    # client.username_pw_set(username, password)
+    #client.username_pw_set(username, password)
     client.on_connect = on_connect
     client.connect(broker, port)
     return client
@@ -86,9 +86,9 @@ def plotdata():
             t.append(id)
             id += 1
             if (id > SAMPLE_RATE + 10):
-               v = float(np.dot(list[-1:], av) / lav) 
+               v = float(np.dot(np.array(list[-1:]), av) / lav) 
                avt = (v / lav) * av
-               aht = list[-1:] - avt
+               aht = np.array(list[-1:]) - avt
                h = float(np.sqrt(np.dot(aht, aht.T)))
                vh.append([v, h])
             if (id % seq_len == 0 and id > 2 * SAMPLE_RATE):
@@ -103,9 +103,11 @@ def plotdata():
                     print("fall fall_detected")
                     # requests.get(url = URL)
 
-        if not len(av) and id > SAMPLE_RATE:
+        if id == SAMPLE_RATE:
             print("v set!")
-            av = np.average(list[0:SAMPLE_RATE-1], axis=0)
+            test = np.array(list[0:SAMPLE_RATE-1])
+            print(test.shape)
+            av = np.average(test, axis=0)
             lav = np.sqrt(np.dot(av, av))
     df = pd.DataFrame(list, columns= ["x", "y", "z"])
     df.to_csv("recorded_data.txt")
@@ -115,10 +117,18 @@ def plotdata():
 
 def gesture_recognition(acc_data, gesturing, light_on):
     SVM = np.linalg.norm(np.array(acc_data))
+    SVM1 = np.linalg.norm(np.array(acc_data[0]))
+    SVM2 = np.linalg.norm(np.array(acc_data[1]))
     # finite state machine
     # given current state(gesturing) and input(SVM), determine next state
     if (not gesturing):
-        if (SVM > 1.8*9.8): # gesture detected
+        if (SVM1 > 1.8*9.8): # gesture detected
+            print("1")
+            light_on = not light_on
+            mqtt_publish(client, light_on)
+            gesturing = True
+        if (SVM2 > 1.8*9.8): # gesture detected
+            print("2")
             light_on = not light_on
             mqtt_publish(client, light_on)
             gesturing = True
@@ -156,14 +166,12 @@ def getdata():
                     obj = json.loads(d)
                     acc_data = [float(obj['AC'][0])/1000 * 9.806, float(obj['AC'][1])/1000 * 9.806, \
                     float(obj['AC'][2])/1000 * 9.806]
-                    # if (obj['M']):
-                    if (obj['S']):
+                    if (obj['M']):
                         gesturing, light_on = gesture_recognition(acc_data, gesturing, light_on)
                     else: 
                         q.put(acc_data)
         except Exception as e:
-            # print("warning: fail to load json ", e, str)
-            print()
+            print("warning: fail to load json ", e, str)
         
     event.clear()
     s.close()
