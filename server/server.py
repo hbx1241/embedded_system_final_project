@@ -43,14 +43,14 @@ def connect_mqtt():
     client.connect(broker, port)
     return client
 
-def mqtt_publish(client):
+def mqtt_publish(client, light_on):
+    # msg = "gesture detected!"
 
-    msg = "gesture detected!"
-    result = client.publish(topic, msg)
+    result = client.publish(topic, light_on)
     # result: [0, 1]
     status = result[0]
     if status == 0:
-        print(f"Send `{msg}` to topic `{topic}`")
+        print(f"Send light_on == `{light_on}` to topic `{topic}`")
     else:
         print(f"Failed to send message to topic {topic}")
 
@@ -101,7 +101,7 @@ def plotdata():
                 print(prediction, id)
                 if prediction == "fall_forward":
                     print("fall fall_detected")
-                    #requests.get(url = URL)
+                    # requests.get(url = URL)
 
         if not len(av) and id > SAMPLE_RATE:
             print("v set!")
@@ -113,21 +113,21 @@ def plotdata():
 #    df2.to_csv("recorded_data_vh.txt")
     print("data saved!")
 
-def gesture_recognition(acc_data, previous_gesturing_status):
+def gesture_recognition(acc_data, gesturing, light_on):
     SVM = np.linalg.norm(np.array(acc_data))
-    if(SVM > 1.8 * 9.8):
-        # gesturing
-        if(not previous_gesturing_status):
-            print("gesture detected")
-            mqtt_publish(client)
-            previous_gesturing_status = True
+    # finite state machine
+    # given current state(gesturing) and input(SVM), determine next state
+    if (not gesturing):
+        if (SVM > 1.8*9.8): # gesture detected
+            light_on = not light_on
+            mqtt_publish(client, light_on)
+            gesturing = True
     else:
-        # not gesturing
-        if(previous_gesturing_status):
-            previous_gesturing_status = False
-    return previous_gesturing_status
+        if(SVM < 12):
+            gesturing = False
+    return gesturing, light_on
 
- 
+
 def getdata():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -141,6 +141,7 @@ def getdata():
     cur = 0
     last = 0
     gesturing = False
+    light_on = True
     while True:
         try:
             data = conn.recv(1024).decode('utf-8')
@@ -155,12 +156,14 @@ def getdata():
                     obj = json.loads(d)
                     acc_data = [float(obj['AC'][0])/1000 * 9.806, float(obj['AC'][1])/1000 * 9.806, \
                     float(obj['AC'][2])/1000 * 9.806]
-                    if (obj['M']):
-                        gesturing = gesture_recognition(acc_data, gesturing)
+                    # if (obj['M']):
+                    if (obj['S']):
+                        gesturing, light_on = gesture_recognition(acc_data, gesturing, light_on)
                     else: 
                         q.put(acc_data)
         except Exception as e:
-            print("warning: fail to load json ", e, str)
+            # print("warning: fail to load json ", e, str)
+            print()
         
     event.clear()
     s.close()
