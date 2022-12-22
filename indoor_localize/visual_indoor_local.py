@@ -2,7 +2,7 @@ import socket
 import json
 import matplotlib.pyplot as plt
 
-host_ip = "192.168.0.113"
+host_ip = "192.168.50.169"
 port = 8787
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -11,7 +11,9 @@ client_socket.connect((host_ip, port))
 
 x_coord = []
 y_coord = []
-ap_locations_list = [[0.1,0], [4,0], [0,2.5], [4,2.5]]
+ap_locations_list = [[0,0], [0, 5.7], [3.3, 0], [3.3, 5.7]]
+ap_locations_x = [0, 0, 3.3, 3.3]
+ap_locations_y = [0, 5.7, 0, 5.7]
 
 plt.ion()
 fig = plt.figure(figsize=(3,3))
@@ -30,8 +32,8 @@ while True:
     x_coord = x_coord[-20:]
     y_coord = y_coord[-20:]
     fig.clear()
-    for i in len(ap_locations_list):
-        plt.plot(ap_locations_list[i][0], ap_locations_list[i][1], 'b')
-    plt.plot(x_coord, y_coord, 'r')
+    #for i in range(len(ap_locations_list)):
+    plt.scatter(ap_locations_x, ap_locations_y, c='b')
+    plt.scatter(x_coord, y_coord, c='r')
     plt.show()
     plt.pause(0.0001)

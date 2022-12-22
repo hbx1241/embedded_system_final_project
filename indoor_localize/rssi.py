@@ -26,14 +26,14 @@ def Kalman_filter(measure_state, measure_uncertainty, prev_state, prev_uncertain
     
     return estimate_state, estimate_uncertainty
 
-def scan_3sec(verbose=False):
+def scan_3sec(verbose=True):
     scanner = Scanner()
     raw_rssi = None
     filtered_rssi = None
     scan_time_start = time.time()
     miss = 0
     while time.time() - scan_time_start <= 3:
-        devices = list(scanner.scan(0.2))
+        devices = list(scanner.scan(0.5))
         found = False
         for d in devices:
             for (adtype, desc, value) in d.getScanData():

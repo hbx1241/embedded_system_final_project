@@ -10,24 +10,24 @@ from scipy.optimize import minimize
 import numpy as np
 
 # Socket Settings
-HOST = '192.168.0.181'    # your IP address
+HOST = "192.168.50.169"    # your IP address
 PORT = 8787                # Port to listen for STM32 data (use ports > 1023)
 
 #from mcpi_e.minecraft import Minecraft
 #from mcpi_e import block
 
 # Anchor point locations
-ap_locations_list = [[0.1,0], [4,0], [0,2.5], [4,2.5]]
+ap_locations_list = [[0,0], [0, 5.7], [3.3, 0], [3.3, 5.7]]
 
 # Post-processing cutoff coordinates
-max_x = max(ap_locations_list[1][0], ap_locations_list[3][0]) + 1
-min_x = min(ap_locations_list[0][0], ap_locations_list[2][0]) - 1
-max_y = max(ap_locations_list[2][1], ap_locations_list[3][1]) + 0.5
-min_y = min(ap_locations_list[0][1], ap_locations_list[1][1]) - 0.5
+max_x = max(ap_locations_list[2][0], ap_locations_list[2][0]) + 1
+min_x = min(ap_locations_list[0][0], ap_locations_list[1][0]) - 1
+max_y = max(ap_locations_list[1][1], ap_locations_list[1][1]) + 0.5
+min_y = min(ap_locations_list[0][1], ap_locations_list[2][1]) - 0.5
 
 # Configurations
 ratio = 0.5             # post-processing averaging ratio
-magnify_by = 8          # Minecraft in-game viewing ratio
+magnify_by = 1          # Minecraft in-game viewing ratio
 pitch_change = 10       # ange of rotation per upwards/downwards tilt
 tp = 10                 # num of steps in telport to simulate walking
 follow = True           # rotate based on magnetometer data or not
@@ -176,7 +176,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((HOST, PORT))
     s.listen()
-    print(f"Listening to {HOST} at port {PORT} for STM signals...")
+    print(f"Listening to {HOST} at port {PORT} for dashboard...")
     conn, addr = s.accept()
     with conn:
         time.sleep(1)
@@ -186,7 +186,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 # Run when distance data from anchor points are received
                 if len(dist_ready):
                     dist = dist_ready.pop(0)
-                    print("dist", dist)
+                    #print("dist", dist)
 
                     # triangulate board position from distance
                     result = triangulate(dist, ap_locations)
@@ -200,7 +200,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     
                     # Magnify position coordinates for ease of viewing in-game
                     result = result * magnify_by
-                    print("result", result)
+                    #print("result", result)
 
                     # Average change of position with previous position if position fluctuates quickly
                     if prev_result is not None:
