@@ -43,14 +43,14 @@ def connect_mqtt():
     client.connect(broker, port)
     return client
 
-def mqtt_publish(client, light_on):
-    # msg = "gesture detected!"
-
-    result = client.publish(topic, light_on)
+def mqtt_publish(client, light_on, light_idx):
+    
+    msg = str(light_idx) + str(light_on)
+    result = client.publish(topic, msg)
     # result: [0, 1]
     status = result[0]
     if status == 0:
-        print(f"Send light_on == `{light_on}` to topic `{topic}`")
+        print(f"Send {msg} to topic `{topic}`")
     else:
         print(f"Failed to send message to topic {topic}")
 
@@ -125,12 +125,12 @@ def gesture_recognition(acc_data, gesturing, light_on):
         if (SVM1 > 1.8*9.8): # gesture detected
             print("1")
             light_on = not light_on
-            mqtt_publish(client, light_on)
+            mqtt_publish(client, light_on, 1)
             gesturing = True
         if (SVM2 > 1.8*9.8): # gesture detected
             print("2")
             light_on = not light_on
-            mqtt_publish(client, light_on)
+            mqtt_publish(client, light_on, 2)
             gesturing = True
     else:
         if(SVM < 12):
