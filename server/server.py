@@ -122,8 +122,8 @@ def plotdata():
                     z.append(score)
                 #print(z)
                 prediction = act[z.index(max(z))]
-                #if prediction != "fall_forward":
-                    #print("ADLs")
+                if prediction != "fall_forward":
+                    print("ADLs")
                 #else:
                 if prediction == "fall_forward" and last != "fall_forward":
                     print("fall fall_detected")
