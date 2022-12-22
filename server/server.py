@@ -22,12 +22,21 @@ URL = setting["URL"] # ifttt url
 username = setting["username"] # username of public mqtt server
 password = setting["password"] # password
 
+topic_s = "indoor_coord"
 SAMPLE_RATE = 20
 LAST = 500 * SAMPLE_RATE # show last LAST data
 seq_len = 8
 t = []
 acc = [[] for i in range(3)]
 act = ["idle", "walk", "stand_up", "sit_down", "fall_forward"]
+
+q = queue.Queue()
+cx = queue.Queue()
+cy = queue.Queue()
+event = threading.Event()
+stop = threading.Event()
+warn = threading.Event()
+
 # MQTT
 
 def connect_mqtt():
@@ -54,6 +63,22 @@ def mqtt_publish(client, light_on):
     else:
         print(f"Failed to send message to topic {topic}")
 
+
+def subscribe(client: mqtt_client):
+    def on_message(client, userdata, msg):
+        coord = msg.payload.decode()
+        obj = json.loads(coord)
+        print(f"Received `{coord}` from `{msg.topic}` topic_s")
+        if (cx.empty() == False):
+            tmp = cx.get()
+        cx.put(obj["coord_x"])
+        if (cy.empty() == False):
+            tmp = cy.get()
+        cy.put(obj["coord_y"])
+        
+    client.subscribe(topic_s)
+    client.on_message = on_message
+
 broker = 'broker.emqx.io'
 port = 1883
 topic = "light switching"
@@ -62,11 +87,9 @@ client_id = f'python-mqtt-{random.randint(0, 1000)}'
 
 
 client = connect_mqtt()
+subscribe(client)
 client.loop_start()
 
-q = queue.Queue()
-event = threading.Event()
-stop = threading.Event()
 
 def plotdata():
     dimension = ['X', 'Y', 'Z']
@@ -79,6 +102,7 @@ def plotdata():
     vh = []
     lav = 0 
     id = 0
+    last = ""
     event.wait()
     while stop.is_set() == False:
         while q.qsize() > 0:
@@ -96,19 +120,25 @@ def plotdata():
                 for hmm in model:
                     score = hmm.score(vh[-seq_len:])
                     z.append(score)
-                print(z)
+                #print(z)
                 prediction = act[z.index(max(z))]
-                print(prediction, id)
-                if prediction == "fall_forward":
+                #if prediction != "fall_forward":
+                    #print("ADLs")
+                #else:
+                if prediction == "fall_forward" and last != "fall_forward":
                     print("fall fall_detected")
+                    warn.set()
+                    print("set!")
+                else:
+                    warn.clear()
                     # requests.get(url = URL)
-
-        if id == SAMPLE_RATE:
-            print("v set!")
-            test = np.array(list[0:SAMPLE_RATE-1])
-            print(test.shape)
-            av = np.average(test, axis=0)
-            lav = np.sqrt(np.dot(av, av))
+                last = prediction
+            if id == SAMPLE_RATE:
+                print("v set!")
+                test = np.array(list[0:SAMPLE_RATE-1])
+                print(test.shape)
+                av = np.average(test, axis=0)
+                lav = np.sqrt(np.dot(av, av))
     df = pd.DataFrame(list, columns= ["x", "y", "z"])
     df.to_csv("recorded_data.txt")
 #    df2 = pd.DataFrame(vh, columns= ["v", "h"])
@@ -176,11 +206,20 @@ def getdata():
     event.clear()
     s.close()
     
-
+def notify():
+    while stop.is_set() == False:
+        warn.wait()
+        x = cx.get()
+        y = cy.get()
+        print("fall", x, y)
+        requests.get(URL + "?value1=" + str(x) + "&value2=" + str(y))
+    
 t1=Thread(target=getdata)
 t2=Thread(target=plotdata)
+t3=Thread(target=notify)
 for a in act:
     with open("./model/" + a + ".pkl", "rb") as file:
         q.put(pickle.load(file))
 t1.start()
 t2.start()
+t3.start()
