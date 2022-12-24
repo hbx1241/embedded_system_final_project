@@ -1,8 +1,5 @@
 # 嵌入式系統實驗期末專題-居家生活助理
-<p class="text-center">
-    GitHub Repo: 
-    <a href="https://github.com/hbx1241/embedded_system_final_project">https://github.com/hbx1241/embedded_system_final_project</a>
-</p>
+
 <p class="text-right">
 B09901196 黃秉璿<br>
 B08901209 林鈺翔<br>
